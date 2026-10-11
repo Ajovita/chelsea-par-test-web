@@ -13,7 +13,8 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "test:forms": "npm run build && node --test tests/form.integration.mjs",
-    "test:forms:built": "node --test tests/form.integration.mjs"
+    "test:forms:built": "node --test tests/form.integration.mjs",
+    "build:pages": "vite build --config vite.pages.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

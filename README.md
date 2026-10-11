@@ -31,3 +31,9 @@ Downloaded from images.unsplash.com: photo-1534528741775-53994a69daeb (portrait)
 ## Form testing
 
 Manual browser checklist: [docs/form-test-cases.md](docs/form-test-cases.md). Run `npm run test:forms` to build and execute the 37 isolated API tests, or `npm run test:forms:built` against an up-to-date build. Tests use temporary D1/R2 emulators and submit no requests to the live website. Browser UI checks are recorded separately and are not covered by the API suite.
+
+## GitHub Pages client preview
+
+`pnpm build:pages` creates `pages-dist/`, a static design preview with both themes, the sample portfolio and a clearly labelled demo form. It makes no enquiry API requests and includes no studio dashboard or private data.
+
+`.github/workflows/pages.yml` builds and deploys the preview on pushes to main. If GitHub does not permit automatic Pages enablement, select **Settings → Pages → Source: GitHub Actions**, then rerun the workflow. Expected URL: https://ajovita.github.io/chelsea-par-test-web/ . This is a separate static preview; the full application remains on its existing hosting.
