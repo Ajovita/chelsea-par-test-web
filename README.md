@@ -3,6 +3,7 @@
 A responsive editorial portfolio and booking/enquiry website, inspired by the supplied visual references. Built with React, TypeScript and Vinext for Cloudflare Workers, D1 and R2.
 
 ## Included
+- Light and dark themes with a header toggle and saved browser preference (light by default).
 - Filterable portfolio and accessible project detail dialog.
 - Photography ($300, 2–4 hour shoot, 20–30 edited photos), videography ($550, 2 edited videos), reels & posts ($400, 5 reels, 10 posts), photo + video ($850, 1 edited video, 20 edited photos).
 - Meeting requests and enquiries saved durably in D1. Meeting dates are requests requiring manual confirmation, not guaranteed availability.
