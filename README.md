@@ -27,3 +27,7 @@ The supplied domain `koldcreativestudio.com` is not attached automatically. DNS 
 
 ## Sample imagery
 Downloaded from images.unsplash.com: photo-1534528741775-53994a69daeb (portrait), photo-1518837695005-2083093ee35b (coast), photo-1483985988355-763728e1935b (fashion), photo-1524504388940-b1c1722653e1 (studio). Served locally to avoid runtime third-party requests.
+
+## Form testing
+
+Manual browser checklist: [docs/form-test-cases.md](docs/form-test-cases.md). Run `npm run test:forms` to build and execute the 36 isolated API tests, or `npm run test:forms:built` against an up-to-date build. Tests use temporary D1/R2 emulators and submit no requests to the live website. Browser UI checks are recorded separately and are not covered by the API suite.
