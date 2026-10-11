@@ -26,10 +26,8 @@ const mf = new Miniflare(options);
 const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Perth' });
 const shiftDate = (days) => new Date(Date.parse(today + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10);
 const jpg = readFileSync('public/images/portrait.jpg');
-const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNMqYhiYGBgYmBgYGBgAAAOvAE6k3HT0QAAAABJRU5ErkJggg==', 'base64');
-const webp = Buffer.from('UklGRjAAAABXRUJQVlA4ICQAAABwAQCdASoCAAIAAUAmJYwCdAFAAAD+6Wka4ubIiiwwmB2AAAA=', 'base64');
 function form(overrides = {}) {
-  const data = new FormData();
+  const data = new URLSearchParams();
   const values = { name: 'QA Test Person', email: 'qa@example.com', phone: '', package: 'Photography', type: 'Enquiry', date: '', time: '', message: 'A portrait shoot enquiry for testing.', consent: 'on', ...overrides };
   for (const [key, value] of Object.entries(values)) if (value !== undefined) data.set(key, value);
   return data;
@@ -37,7 +35,7 @@ function form(overrides = {}) {
 async function send(path, init = {}) {
   const url = origin + path;
   // Serialize Node FormData so the Worker receives a real multipart body.
-  if (init.body instanceof FormData) {
+  if (init.body instanceof FormData || init.body instanceof URLSearchParams) {
     const request = new Request(url, init);
     init = { ...init, headers: Object.fromEntries(request.headers), body: new Uint8Array(await request.arrayBuffer()) };
   }
@@ -51,7 +49,7 @@ async function submit(data, expected = 200, headers = { Origin: origin }) {
   else assert.equal(typeof result.error, 'string');
   return result;
 }
-let attachmentId, enquiryId;
+let enquiryId;
 await test('Enquiry and meeting form API', { concurrency: false }, async t => {
   try {
     const db = await mf.getD1Database('DB');
@@ -111,49 +109,48 @@ await test('Enquiry and meeting form API', { concurrency: false }, async t => {
     for (const [id, label, overrides] of invalid) await t.test(id + ': reject ' + label + ' without creating records', async () => {
       const before = await counts(); await submit(form(overrides), 400); assert.deepEqual(await counts(), before);
     });
-    await t.test('F28: JPEG, PNG and WebP attachments persist with their enquiry', async () => {
-      const data = form();
-      for (const [bytes, name, type] of [[jpg, 'portrait.jpg', 'image/jpeg'], [png, 'reference.png', 'image/png'], [webp, 'reference.webp', 'image/webp']]) data.append('photos', new File([bytes], name, { type }));
-      const result = await submit(data);
-      const rows = (await db.prepare('SELECT * FROM uploads WHERE enquiry_id = ?').bind(result.id).all()).results;
-      assert.equal(rows.length, 3); assert.deepEqual(rows.map(row => row.mime).sort(), ['image/jpeg', 'image/png', 'image/webp']);
-      for (const row of rows) {
-        const object = await (await mf.getR2Bucket('BUCKET')).get(row.id);
-        assert.ok(object); assert.equal(object.size, row.size); assert.equal(object.httpMetadata.contentType, row.mime);
-      }
-      attachmentId = rows[0].id;
+    await t.test('F28: reject multipart photo attachments without storing anything', async () => {
+      const before=await counts(), data=new FormData();
+      for(const [key,value] of form())data.set(key,value);
+      data.append('photos',new File([jpg],'photo.jpg',{type:'image/jpeg'}));
+      await submit(data,415); assert.deepEqual(await counts(),before);
     });
-    await t.test('F29: reject four photos without creating records or stored objects', async () => {
-      const before = await counts(), data = form();
-      for (let i = 0; i < 4; i++) data.append('photos', new File([jpg], i + '.jpg', { type: 'image/jpeg' }));
-      await submit(data, 400); assert.deepEqual(await counts(), before);
+    await t.test('F29: reject legacy multipart enquiries even without photos', async () => {
+      const before=await counts(), data=new FormData(); for(const [key,value] of form())data.set(key,value);
+      await submit(data,415);assert.deepEqual(await counts(),before);
     });
-    await t.test('F30: accept exactly 8 MiB and reject one byte above it', async () => {
-      const bytes = new Uint8Array(8 * 1024 * 1024); bytes.set(jpg);
-      const valid = form(); valid.append('photos', new File([bytes], 'boundary.jpg', { type: 'image/jpeg' })); await submit(valid);
-      const before = await counts(), invalid = form(); invalid.append('photos', new File([bytes, new Uint8Array(1)], 'large.jpg', { type: 'image/jpeg' }));
-      await submit(invalid, 400); assert.deepEqual(await counts(), before);
+    await t.test('F30: reject actual request bodies over 64 KiB without relying on Content-Length', async () => {
+      const before=await counts();
+      const response=await send('/api/enquiries',{method:'POST',headers:{Origin:origin,'Content-Type':'application/x-www-form-urlencoded'},body:'message='+ 'A'.repeat(65536)});
+      assert.equal(response.status,413);assert.deepEqual(await counts(),before);
     });
-    await t.test('F31: reject renamed text masquerading as a PNG', async () => {
-      const before = await counts(), data = form(); data.append('photos', new File(['plain text'], 'fake.png', { type: 'image/png' }));
-      await submit(data, 400); assert.deepEqual(await counts(), before);
+    await t.test('F31: reject legacy photos field in a text enquiry', async () => {
+      const before=await counts();await submit(form({photos:'photo.jpg'}),400);assert.deepEqual(await counts(),before);
     });
-    await t.test('F32: reject mismatched JPEG bytes and PNG MIME type', async () => {
-      const before = await counts(), data = form(); data.append('photos', new File([jpg], 'fake.png', { type: 'image/png' }));
-      await submit(data, 400); assert.deepEqual(await counts(), before);
+    await t.test('F32: reject unsupported JSON request format', async () => {
+      const before=await counts();const response=await send('/api/enquiries',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({name:'Test Person'})});
+      assert.equal(response.status,415);assert.deepEqual(await counts(),before);
     });
     await t.test('F33: reject cross-origin submissions', async () => { const before = await counts(); await submit(form(), 403, { Origin: 'https://other.invalid' }); assert.deepEqual(await counts(), before); });
     await t.test('F34: reject submissions without Origin', async () => { const before = await counts(); await submit(form(), 403, {}); assert.deepEqual(await counts(), before); });
-    await t.test('F35: authorised dashboard reads attachment and changes status', async () => {
-      const response = await send('/api/media/' + attachmentId); assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'private, no-store');
-      const update = await send('/api/enquiries', { method: 'PATCH', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: enquiryId, status: 'contacted' }) }); assert.equal(update.status, 200);
-      assert.equal((await db.prepare('SELECT status FROM enquiries WHERE id = ?').bind(enquiryId).first()).status, 'contacted');
+    await t.test('F35: authorised dashboard reads text-only inbox and changes status', async () => {
+      const inbox=await (await send('/api/enquiries')).json();assert.ok(inbox.enquiries.length);assert.equal('uploads' in inbox,false);
+      const update=await send('/api/enquiries',{method:'PATCH',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({id:enquiryId,status:'contacted'})});assert.equal(update.status,200);
+      assert.equal((await db.prepare('SELECT status FROM enquiries WHERE id = ?').bind(enquiryId).first()).status,'contacted');
+      await (await mf.getR2Bucket('BUCKET')).put('historical-attachment',jpg,{httpMetadata:{contentType:'image/jpeg'}});
+      assert.equal((await send('/api/media/historical-attachment')).status,404);
     });
-    await t.test('F36: unauthorised visitor cannot read inbox, read private photos or change status', async () => {
-      await mf.setOptions({ ...options, bindings: {} });
-      assert.equal((await send('/api/enquiries')).status, 403);
-      assert.equal((await send('/api/media/' + attachmentId)).status, 404);
-      assert.equal((await send('/api/enquiries', { method: 'PATCH', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: enquiryId, status: 'closed' }) })).status, 403);
+    await t.test('F36: unauthorised visitor cannot read inbox or change status', async () => {
+      await mf.setOptions({...options,bindings:{}});assert.equal((await send('/api/enquiries')).status,403);
+      assert.equal((await send('/api/enquiries',{method:'PATCH',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({id:enquiryId,status:'closed'})})).status,403);
+    });
+    await t.test('F37: studio portfolio photo upload remains available only to authorised owner', async () => {
+      await mf.setOptions(options);const data=new FormData();data.set('title','QA portfolio');data.set('category','Photography');data.set('description','QA only');data.set('image',new File([jpg],'cover.jpg',{type:'image/jpeg'}));
+      const response=await send('/api/projects',{method:'POST',headers:{Origin:origin},body:data});assert.equal(response.status,200);
+      const projects=await (await send('/api/projects')).json();assert.equal(projects.length,1);
+      await mf.setOptions({...options,bindings:{}});
+      assert.equal((await send('/api/media/'+projects[0].imageId)).status,200);
+      assert.equal((await send('/api/projects',{method:'POST',headers:{Origin:origin},body:data})).status,403);
     });
   } finally {
     await mf.dispose(); rmSync(temp, { recursive: true, force: true });

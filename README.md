@@ -7,8 +7,8 @@ A responsive editorial portfolio and booking/enquiry website, inspired by the su
 - Filterable portfolio and accessible project detail dialog.
 - Photography ($300, 2–4 hour shoot, 20–30 edited photos), videography ($550, 2 edited videos), reels & posts ($400, 5 reels, 10 posts), photo + video ($850, 1 edited video, 20 edited photos).
 - Meeting requests and enquiries saved durably in D1. Meeting dates are requests requiring manual confirmation, not guaranteed availability.
-- Up to 3 private reference photo attachments per enquiry, 8 MB each, stored in R2.
-- `/studio` dashboard: upload portfolio covers, review enquiries and reference photos, update statuses, remove projects.
+- Enquiry and meeting forms accept text only; photo attachments are disabled and rejected server-side. Text request bodies have a 64 KiB limit.
+- `/studio` dashboard: upload portfolio covers, review enquiries, update statuses, remove projects.
 - Real portfolio uploads automatically replace sample gallery cards.
 
 ## Development
@@ -30,4 +30,4 @@ Downloaded from images.unsplash.com: photo-1534528741775-53994a69daeb (portrait)
 
 ## Form testing
 
-Manual browser checklist: [docs/form-test-cases.md](docs/form-test-cases.md). Run `npm run test:forms` to build and execute the 36 isolated API tests, or `npm run test:forms:built` against an up-to-date build. Tests use temporary D1/R2 emulators and submit no requests to the live website. Browser UI checks are recorded separately and are not covered by the API suite.
+Manual browser checklist: [docs/form-test-cases.md](docs/form-test-cases.md). Run `npm run test:forms` to build and execute the 37 isolated API tests, or `npm run test:forms:built` against an up-to-date build. Tests use temporary D1/R2 emulators and submit no requests to the live website. Browser UI checks are recorded separately and are not covered by the API suite.
