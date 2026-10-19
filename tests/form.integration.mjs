@@ -69,8 +69,8 @@ await test('Enquiry and meeting form API', { concurrency: false }, async t => {
       assert.equal(row.package, 'Photography'); assert.equal(row.type, 'Enquiry'); assert.equal(row.status, 'new');
       assert.equal(row.date, ''); assert.equal(row.time, ''); assert.ok(row.created_at);
     });
-    await t.test('F02: all five package choices are accepted and stored', async () => {
-      for (const pkg of ['Photography', 'Videography', 'Reels & posts', 'Photo + video', 'Not sure yet']) {
+    await t.test('F02: all named packages and legacy choices are accepted and stored', async () => {
+      for (const pkg of ['RAIN — Social Content Creation', 'FREEZE — Photography', 'ICE — Videography', 'GLACIER — Photo + Video', 'EVEREST — Photo + Video + Content', 'Not sure yet', 'Photography', 'Videography', 'Reels & posts', 'Photo + video']) {
         const result = await submit(form({ package: pkg }));
         assert.equal((await db.prepare('SELECT package FROM enquiries WHERE id = ?').bind(result.id).first()).package, pkg);
       }

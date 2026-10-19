@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { getChatGPTUser } from "../app/chatgpt-auth";
+import { packageChoices } from "./packages";
 export async function isAdmin() {
  // Remove preview-only flag BEFORE changing the Site's owner-private audience.
  if(env.PRIVATE_PREVIEW_ADMIN === "true") return true;
@@ -7,7 +8,8 @@ export async function isAdmin() {
  return !!(env.ADMIN_EMAIL && user && user.email.toLowerCase()===env.ADMIN_EMAIL.toLowerCase());
 }
 export function sameOrigin(request:Request){const origin=request.headers.get("origin");return !!origin && origin===new URL(request.url).origin;}
-export const packages=["Photography","Videography","Reels & posts","Photo + video","Not sure yet"];
+// Keep older values valid for already-open forms and historical enquiries.
+export const packages=[...packageChoices,"Photography","Videography","Reels & posts","Photo + video","Not sure yet"];
 export const categories=["Photography","Videography","Social content"];
 export function validDate(value:string){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;

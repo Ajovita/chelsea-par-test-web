@@ -6,7 +6,7 @@ Scope: Make an enquiry and Book a meeting, with text-only submissions and studio
 
 1. For automated checks, install dependencies and run `npm run test:forms`. This builds the current source and runs 37 API cases in temporary D1/R2 storage. `npm run test:forms:built` skips rebuilding and must only be used with an up-to-date build. The tests never submit to the hosted site.
 2. For browser checks, use a staging/private preview, signed in as its owner. Prefix test names with `QA TEST` and use `qa@example.com`. Requests submitted through the hosted form are real records in that environment. Review them in `/studio` and mark them closed when finished.
-3. Use a valid baseline unless a case says otherwise: name `QA TEST Person`, email `qa@example.com`, Photography, message `Please arrange a portrait shoot for this test.`, consent checked. Phone, dates and time are optional for Enquiry. Photos cannot be attached. For Meeting, choose a future date and `10:30` Perth time.
+3. Use a valid baseline unless a case says otherwise: name `QA TEST Person`, email `qa@example.com`, FREEZE — Photography, message `Please arrange a portrait shoot for this test.`, consent checked. Phone, dates and time are optional for Enquiry. Photos cannot be attached. For Meeting, choose a future date and `10:30` Perth time.
 4. Verify the form has no photo input. Direct multipart/file requests must be rejected; studio portfolio uploads remain available.
 5. Record Actual result, Pass/Fail/Blocked, browser/device, date, and any defect reference. Manual cases below have **not been executed**. API tests do not verify browser rendering or interactions.
 
@@ -17,7 +17,7 @@ For rejection cases, no enquiry, upload metadata or stored photo should be added
 | ID | Scenario / input | Expected result |
 | --- | --- | --- |
 | F01 | Submit baseline enquiry without optional fields | HTTP 200; generated ID; exact form fields persisted; status `new`; creation timestamp saved. |
-| F02 | Submit each of the five package options | Photography, Videography, Reels & posts, Photo + video and Not sure yet accepted and stored correctly. |
+| F02 | Submit each current and legacy package option | RAIN, FREEZE, ICE, GLACIER, EVEREST and Not sure yet accepted and stored correctly; four legacy package values remain valid for already-open forms. |
 | F03 | Meeting with date seven days ahead and time 10:30 | HTTP 200; chosen date/time and Meeting type saved; status `new`, awaiting confirmation. |
 | F04 | Enquiry date is today in Australia/Perth | HTTP 200; accepted. |
 | F05 | Whitespace around name, email and message | HTTP 200; stored values trimmed. |
@@ -91,7 +91,7 @@ All cases start as **Not run**. Use current Chrome desktop plus Safari on iPhone
 
 | Suite | Result | Date / environment | Notes |
 | --- | --- | --- | --- |
-| API F01–F37 | Passed: 37 cases, 0 failures | 11 Oct 2026; isolated local Miniflare D1/R2 | Includes attachment rejection and retained owner portfolio uploads. Node reports 38 passes including parent wrapper. |
+| API F01–F37 | Passed: 37 cases, 0 failures | 19 Oct 2026; isolated local Miniflare D1/R2 | Includes five named packages, legacy package compatibility, attachment rejection and retained owner portfolio uploads. Node reports 38 passes including parent wrapper. |
 | Browser UI01–UI24 | Not run | — | Browser automation unavailable in the authoring session. |
 
 ## Limits
